@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Garant Bonus — Розыгрыш премиум призов</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            transition: background-color 0.2s, color 0.2s;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 70px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 16px 12px;
+            border-top: 1px solid var(--tg-theme-hint-color, #ccc);
+            z-index: 100;
+        }
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            transition: 0.1s;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+        .tab-item.active {
+            color: var(--tg-theme-button-color, #2481cc);
+            background: var(--tg-theme-button-color, #2481cc10);
+        }
+        .tab-icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .profile-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ffd93d, #ff9500);
+            color: #000;
+            font-weight: bold;
+            font-size: 28px;
+            background-size: cover;
+            background-position: center;
+        }
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 800;
+            color: #ffd93d;
+            margin: 8px 0;
+        }
+        .withdraw-btn {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            width: 100%;
+            font-weight: 600;
+            margin-top: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .task-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--tg-theme-hint-color, #eee);
+            cursor: pointer;
+        }
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .task-icon {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+        }
+        .task-item.completed {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+        .invite-link {
+            background: var(--tg-theme-bg-color, #fff);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 12px 0;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+        }
+        .copy-btn {
+            background: #ff9500;
+            border: none;
+            padding: 10px;
+            border-radius: 40px;
+            width: 100%;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 20px auto;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .spin-btn {
+            background: linear-gradient(135deg, #ffd93d, #ff9500);
+            border: none;
+            padding: 14px;
+            border-radius: 40px;
+            width: 100%;
+            font-weight: 800;
+            margin-top: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .review-item {
+            background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .review-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd93d, #ff9500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: #000;
+        }
+        .review-content {
+            flex: 1;
+        }
+        .review-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .review-text {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .review-date {
+            font-size: 10px;
+            color: var(--tg-theme-hint-color, #8e8e93);
+            margin-top: 6px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--tg-theme-bg-color, white);
+            border-radius: 28px;
+            padding: 24px;
+            width: 280px;
+            text-align: center;
+        }
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 16px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            background: var(--tg-theme-bg-color, white);
+            color: var(--tg-theme-text-color, black);
+        }
+        .prize-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.96);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+        }
+        .prize-modal-content {
+            background: linear-gradient(135deg, #1c1c1e, #0f0f0f);
+            border-radius: 32px;
+            padding: 28px 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 80%;
+            border: 1px solid #ffd93d;
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-container">
+    <!-- Профиль -->
+    <div id="profilePage" class="page active">
+        <div class="card">
+            <div class="profile-card">
+                <div class="avatar" id="avatar">👤</div>
+                <div>
+                    <h3 id="userName">Загрузка...</h3>
+                    <p id="userId"></p>
+                </div>
+            </div>
+            <div class="balance-amount" id="balance">0 ₽</div>
+            <button class="withdraw-btn" id="withdrawBtn">
+                💸 ВЫВЕСТИ
+            </button>
+        </div>
+        <div class="card">
+            <h3 style="display: flex; align-items: center; gap: 8px;">📋 Задания</h3>
+            <div id="tasksList">
+                <div class="task-item" data-task="subscribe">
+                    <div class="task-left">
+                        <span>📢</span>
+                        <span>Подпишись на канал</span>
+                    </div>
+                    <span>+75 ₽</span>
+                </div>
+                <div class="task-item" data-task="daily">
+                    <div class="task-left">
+                        <span>🎁</span>
+                        <span>Ежедневный бонус</span>
+                    </div>
+                    <span>+100 ₽</span>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h3 style="display: flex; align-items: center; gap: 8px;">👥 Реферальная ссылка</h3>
+            <div class="invite-link" id="inviteLink"></div>
+            <button class="copy-btn" id="copyBtn">📋 Копировать ссылку</button>
+        </div>
+    </div>
+
+    <!-- Рулетка -->
+    <div id="roulettePage" class="page">
+        <div class="card" style="text-align:center;">
+            <h2>🎡 Премиум рулетка</h2>
+            <div class="wheel-container">
+                <canvas id="wheelCanvas" width="260" height="260"></canvas>
+            </div>
+            <button class="spin-btn" id="spinBtn">🎁 КРУТИТЬ — 50 ₽</button>
+            <p id="prizeMessage" style="margin-top:12px;"></p>
+        </div>
+    </div>
+
+    <!-- Отзывы -->
+    <div id="reviewsPage" class="page">
+        <div class="card">
+            <h3>⭐ Реальные истории победителей</h3>
+            <div id="reviewsList"></div>
+        </div>
+    </div>
+</div>
+
+<div class="tab-bar">
+    <button class="tab-item active" data-page="profile">
+        <span class="tab-icon">👤</span>
+        <span>Профиль</span>
+    </button>
+    <button class="tab-item" data-page="roulette">
+        <span class="tab-icon">🎰</span>
+        <span>Рулетка</span>
+    </button>
+    <button class="tab-item" data-page="reviews">
+        <span class="tab-icon">💬</span>
+       
